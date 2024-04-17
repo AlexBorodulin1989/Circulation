@@ -88,6 +88,12 @@ class ViewController: UIViewController {
         let commandBuffer = commandQueue.makeCommandBuffer()!
         let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
         renderEncoder.setRenderPipelineState(pipelineState)
+
+        var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+        invertedYBasis[1][1] = -1
+        var transform = Transform(matrix: invertedYBasis.inverse)
+        renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
+
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3, instanceCount: 1)
         renderEncoder.endEncoding()
@@ -99,6 +105,12 @@ class ViewController: UIViewController {
     @objc func gameloop() {
         autoreleasepool {
             render()
+        }
+    }
+
+    @IBAction func touchScreen(_ sender: UITapGestureRecognizer) {
+        if(sender.state == UIGestureRecognizer.State.ended){
+            print("myUIImageView has been tapped by the user \(sender.location(in: self.view))")
         }
     }
 }
