@@ -30,13 +30,22 @@
 #import "General.h"
 using namespace metal;
 
-vertex float4 basic_vertex(const device packed_float3* vertex_array [[ buffer(0) ]],
+struct VertexOut {
+    float4 pos [[position]];
+    float pointsize [[point_size]];
+};
+
+vertex VertexOut basic_vertex(const device float2* vertex_array [[ buffer(0) ]],
                            unsigned int vid [[ vertex_id ]],
                            constant Transform &transform [[buffer(16)]]) {
-    packed_float3 vert = vertex_array[vid];
+    float2 vert = vertex_array[vid];
     auto pos = float3(vert.x, vert.y, 1);
     auto transformPos = transform.matrix * pos;
-    return float4(transformPos.xy, 0.5, 1.0);
+    VertexOut result {
+        .pos = float4(transformPos.xy, 0.5, 1.0),
+        .pointsize = 10
+    };
+    return result;
 }
 
 fragment half4 basic_fragment() {

@@ -37,11 +37,7 @@ class ViewController: UIViewController {
     var commandQueue: MTLCommandQueue!
     var timer: CADisplayLink!
 
-    let vertexData: [Float] = [
-        0.0, 1.0, 0.0,
-        -1.0, -1.0, 0.0,
-        1.0, -1.0, 0.0
-    ]
+    var vertexData: [SIMD2<Float>] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -55,9 +51,7 @@ class ViewController: UIViewController {
         metalLayer.frame = view.layer.frame
         view.layer.addSublayer(metalLayer)
 
-        let dataSize = vertexData.count * MemoryLayout<Float>.size
-
-        vertexBuffer = device.makeBuffer(bytes: vertexData, length: dataSize)
+        createDataBuffer()
 
         let defaultLibrary = device.makeDefaultLibrary()!
         let fragmentProgram = defaultLibrary.makeFunction(name: "basic_fragment")
@@ -76,6 +70,13 @@ class ViewController: UIViewController {
         timer.add(to: .main, forMode: .default)
     }
 
+    func createDataBuffer() {
+        if !vertexData.isEmpty {
+            let dataSize = vertexData.count * MemoryLayout<SIMD2<Float>>.size
+            vertexBuffer = device.makeBuffer(bytes: vertexData, length: dataSize)
+        }
+    }
+
     func render() {
         guard let drawable = metalLayer?.nextDrawable() else { return }
         let renderPassDescriptor = MTLRenderPassDescriptor()
@@ -87,15 +88,19 @@ class ViewController: UIViewController {
                                                                             alpha: 1.0)
         let commandBuffer = commandQueue.makeCommandBuffer()!
         let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
-        renderEncoder.setRenderPipelineState(pipelineState)
 
-        var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
-        invertedYBasis[1][1] = -1
-        var transform = Transform(matrix: invertedYBasis.inverse)
-        renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
+        if !vertexData.isEmpty {
+            renderEncoder.setRenderPipelineState(pipelineState)
 
-        renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3, instanceCount: 1)
+            var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+            invertedYBasis[1][1] = -1
+            var transform = Transform(matrix: invertedYBasis.inverse)
+            renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
+
+            renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+            renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexData.count)
+        }
+
         renderEncoder.endEncoding()
 
         commandBuffer.present(drawable)
@@ -110,7 +115,14 @@ class ViewController: UIViewController {
 
     @IBAction func touchScreen(_ sender: UITapGestureRecognizer) {
         if(sender.state == UIGestureRecognizer.State.ended){
-            print("myUIImageView has been tapped by the user \(sender.location(in: self.view))")
+            let location = sender.location(in: self.view)
+
+            let xLoc = (location.x / self.view.frame.size.width) * 2 - 1
+            let yLoc = (location.y / self.view.frame.size.height) * 2 - 1
+
+            vertexData.append(.init(Float(xLoc), Float(yLoc)))
+
+            createDataBuffer()
         }
     }
 }
