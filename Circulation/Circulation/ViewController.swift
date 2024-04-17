@@ -98,7 +98,11 @@ class ViewController: UIViewController {
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
 
             renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-            renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexData.count)
+            if vertexData.count > 1 {
+                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
+            } else {
+                renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexData.count)
+            }
         }
 
         renderEncoder.endEncoding()
