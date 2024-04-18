@@ -94,14 +94,27 @@ class ViewController: UIViewController {
 
             var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
             invertedYBasis[1][1] = -1
-            var transform = Transform(matrix: invertedYBasis.inverse)
+
+            var ndcBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+            ndcBasis[0][0] = 2 / Float(self.view.frame.size.width)
+            ndcBasis[1][1] = 2 / Float(self.view.frame.size.height)
+            ndcBasis[2][0] = -1
+            ndcBasis[2][1] = -1
+
+            var transform = Transform(matrix: invertedYBasis.inverse * ndcBasis)
+
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
 
             renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-            if vertexData.count > 1 {
-                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
-            } else {
+            if vertexData.count == 1 {
                 renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexData.count)
+            } else if vertexData.count == 2 {
+                renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: vertexData.count)
+            } else if vertexData.count == 3 {
+                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
+            } else if vertexData.count == 5 {
+                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count - 1)
+                renderEncoder.drawPrimitives(type: .line, vertexStart: 3, vertexCount: 2)
             }
         }
 
@@ -121,10 +134,16 @@ class ViewController: UIViewController {
         if(sender.state == UIGestureRecognizer.State.ended){
             let location = sender.location(in: self.view)
 
-            let xLoc = (location.x / self.view.frame.size.width) * 2 - 1
-            let yLoc = (location.y / self.view.frame.size.height) * 2 - 1
+            if vertexData.count == 5 {
+                vertexData = []
+            }
+            vertexData.append(.init(Float(location.x), Float(location.y)))
 
-            vertexData.append(.init(Float(xLoc), Float(yLoc)))
+            if vertexData.count == 4 {
+                if let first = vertexData.first {
+                    vertexData.append(first)
+                }
+            }
 
             createDataBuffer()
         }
