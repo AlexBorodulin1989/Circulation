@@ -35,11 +35,10 @@ struct VertexOut {
     float pointsize [[point_size]];
 };
 
-vertex VertexOut basic_vertex(const device float2* vertex_array [[ buffer(0) ]],
+vertex VertexOut basic_vertex(const device float3* vertex_array [[ buffer(0) ]],
                            unsigned int vid [[ vertex_id ]],
                            constant Transform &transform [[buffer(16)]]) {
-    float2 vert = vertex_array[vid];
-    auto pos = float3(vert.x, vert.y, 1);
+    auto pos = vertex_array[vid];
     auto transformPos = transform.matrix * pos;
     VertexOut result {
         .pos = float4(transformPos.xy, 0.5, 1.0),
