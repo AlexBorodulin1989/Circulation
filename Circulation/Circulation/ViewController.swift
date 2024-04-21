@@ -29,15 +29,27 @@
 import UIKit
 import Metal
 
+enum CornerType: Int {
+    case left = 0
+    case top = 1
+    case right = 2
+    case bottom = 3
+}
+
 class ViewController: UIViewController {
     var device: MTLDevice!
     var metalLayer: CAMetalLayer!
     var vertexBuffer: MTLBuffer!
+    var frameVertBuffer: MTLBuffer!
     var pipelineState: MTLRenderPipelineState!
     var commandQueue: MTLCommandQueue!
     var timer: CADisplayLink!
 
     var vertexData: [SIMD2<Float>] = []
+    var frameVertices: [SIMD2<Float>] = []
+
+    private let frameWidth: CGFloat = 100
+    private let frameHeight: CGFloat = 50
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -70,38 +82,66 @@ class ViewController: UIViewController {
         timer.add(to: .main, forMode: .default)
     }
 
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+
+        let frameCenter = view.center
+
+        let minX = Float(frameCenter.x - frameWidth * 0.5)
+        let minY = Float(frameCenter.y - frameHeight * 0.5)
+        let maxX = minX + Float(frameWidth)
+        let maxY = minY + Float(frameHeight)
+
+        frameVertices = [
+            .init(minX, minY),
+            .init(maxX, minY),
+            .init(maxX, maxY),
+            .init(minX, maxY),
+            .init(minX, minY)
+        ]
+
+        createDataBuffer()
+    }
+
     func createDataBuffer() {
         if !vertexData.isEmpty {
             let dataSize = vertexData.count * MemoryLayout<SIMD2<Float>>.size
             vertexBuffer = device.makeBuffer(bytes: vertexData, length: dataSize)
         }
+
+        if !frameVertices.isEmpty {
+            let dataSize = frameVertices.count * MemoryLayout<SIMD2<Float>>.size
+            frameVertBuffer = device.makeBuffer(bytes: frameVertices, length: dataSize)
+        }
     }
 
     func render() {
         guard let drawable = metalLayer?.nextDrawable() else { return }
-        let renderPassDescriptor = MTLRenderPassDescriptor()
-        renderPassDescriptor.colorAttachments[0].texture = drawable.texture
-        renderPassDescriptor.colorAttachments[0].loadAction = .clear
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0.0,
-                                                                            green: 104.0/255.0,
-                                                                            blue: 55.0/255.0,
-                                                                            alpha: 1.0)
         let commandBuffer = commandQueue.makeCommandBuffer()!
-        let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
+
+        var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+        invertedYBasis[1][1] = -1
+
+        var ndcBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+        ndcBasis[0][0] = 2 / Float(self.view.frame.size.width)
+        ndcBasis[1][1] = 2 / Float(self.view.frame.size.height)
+        ndcBasis[2][0] = -1
+        ndcBasis[2][1] = -1
+
+        var transform = Transform(matrix: invertedYBasis.inverse * ndcBasis)
 
         if !vertexData.isEmpty {
+            let renderPassDescriptor = MTLRenderPassDescriptor()
+            renderPassDescriptor.colorAttachments[0].texture = drawable.texture
+            renderPassDescriptor.colorAttachments[0].loadAction = .clear
+            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0.0,
+                                                                                green: 104.0/255.0,
+                                                                                blue: 55.0/255.0,
+                                                                                alpha: 1.0)
+
+            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
+
             renderEncoder.setRenderPipelineState(pipelineState)
-
-            var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
-            invertedYBasis[1][1] = -1
-
-            var ndcBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
-            ndcBasis[0][0] = 2 / Float(self.view.frame.size.width)
-            ndcBasis[1][1] = 2 / Float(self.view.frame.size.height)
-            ndcBasis[2][0] = -1
-            ndcBasis[2][1] = -1
-
-            var transform = Transform(matrix: invertedYBasis.inverse * ndcBasis)
 
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
 
@@ -113,12 +153,30 @@ class ViewController: UIViewController {
             } else if vertexData.count == 3 {
                 renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
             } else if vertexData.count == 5 {
-                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count - 1)
-                renderEncoder.drawPrimitives(type: .line, vertexStart: 3, vertexCount: 2)
+                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
             }
+
+            renderEncoder.endEncoding()
         }
 
-        renderEncoder.endEncoding()
+        if !frameVertices.isEmpty {
+            let renderPassDescriptor = MTLRenderPassDescriptor()
+            renderPassDescriptor.colorAttachments[0].texture = drawable.texture
+            renderPassDescriptor.colorAttachments[0].loadAction = vertexData.isEmpty ? .clear : .load
+            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0.0,
+                                                                                green: 104.0/255.0,
+                                                                                blue: 55.0/255.0,
+                                                                                alpha: 1.0)
+
+            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
+
+            renderEncoder.setRenderPipelineState(pipelineState)
+            renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
+            renderEncoder.setVertexBuffer(frameVertBuffer, offset: 0, index: 0)
+            renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: frameVertices.count)
+
+            renderEncoder.endEncoding()
+        }
 
         commandBuffer.present(drawable)
         commandBuffer.commit()
