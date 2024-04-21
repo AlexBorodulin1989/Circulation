@@ -51,6 +51,11 @@ class ViewController: UIViewController {
     private let frameWidth: CGFloat = 100
     private let frameHeight: CGFloat = 50
 
+    private let clearColor = MTLClearColor(red: 0.0,
+                                           green: 104.0/255.0,
+                                           blue: 55.0/255.0,
+                                           alpha: 1.0)
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -130,14 +135,13 @@ class ViewController: UIViewController {
 
         var transform = Transform(matrix: invertedYBasis.inverse * ndcBasis)
 
+
+
         if !vertexData.isEmpty {
             let renderPassDescriptor = MTLRenderPassDescriptor()
             renderPassDescriptor.colorAttachments[0].texture = drawable.texture
             renderPassDescriptor.colorAttachments[0].loadAction = .clear
-            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0.0,
-                                                                                green: 104.0/255.0,
-                                                                                blue: 55.0/255.0,
-                                                                                alpha: 1.0)
+            renderPassDescriptor.colorAttachments[0].clearColor = clearColor
 
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
 
@@ -163,10 +167,7 @@ class ViewController: UIViewController {
             let renderPassDescriptor = MTLRenderPassDescriptor()
             renderPassDescriptor.colorAttachments[0].texture = drawable.texture
             renderPassDescriptor.colorAttachments[0].loadAction = vertexData.isEmpty ? .clear : .load
-            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0.0,
-                                                                                green: 104.0/255.0,
-                                                                                blue: 55.0/255.0,
-                                                                                alpha: 1.0)
+            renderPassDescriptor.colorAttachments[0].clearColor = clearColor
 
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
 
