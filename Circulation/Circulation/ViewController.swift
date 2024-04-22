@@ -29,13 +29,6 @@
 import UIKit
 import Metal
 
-enum CornerType: Int {
-    case left = 0
-    case top = 1
-    case right = 2
-    case bottom = 3
-}
-
 class ViewController: UIViewController {
     var device: MTLDevice!
     var metalLayer: CAMetalLayer!
@@ -138,6 +131,19 @@ class ViewController: UIViewController {
             directBasis[1][1] = newYBasis.y
             directBasis[2][0] = vertexData[0].x
             directBasis[2][1] = vertexData[0].y
+
+            newXBasis = SIMD2<Float>(vertexData[3].x - vertexData[2].x, vertexData[3].y - vertexData[2].y)
+            newYBasis = SIMD2<Float>(vertexData[1].x - vertexData[2].x, vertexData[1].y - vertexData[2].y)
+
+            newXBasis /= newXBasis.magnitude()
+            newYBasis /= newYBasis.magnitude()
+
+            diagonalBasis[0][0] = newXBasis.x
+            diagonalBasis[0][1] = newXBasis.y
+            diagonalBasis[1][0] = newYBasis.x
+            diagonalBasis[1][1] = newYBasis.y
+            diagonalBasis[2][0] = vertexData[2].x
+            diagonalBasis[2][1] = vertexData[2].y
         }
     }
 
@@ -171,8 +177,57 @@ class ViewController: UIViewController {
         for index in 0...4 {
             frameVertices[index] = directBasis * frameVertices[index]
         }
+    }
 
-        createDataBuffer()
+    func getScaleToDiagonalBasis() -> Float {
+        let invDiagonalBasis = diagonalBasis.inverse
+
+        var vertices = frameVertices
+
+        for index in 0...4 {
+            vertices[index] = invDiagonalBasis * vertices[index]
+        }
+
+        var minX = Float.greatestFiniteMagnitude
+        var minY = Float.greatestFiniteMagnitude
+
+        for frameVertex in vertices {
+            let currX = frameVertex.x
+            let currY = frameVertex.y
+
+            if currX < minX {
+                minX = currX
+            }
+            if currY < minY {
+                minY = currY
+            }
+        }
+
+        let directCorner = invDiagonalBasis * vertexData[0]
+
+        let xScale = directCorner.x / (directCorner.x - minX)
+        let yScale = directCorner.y / (directCorner.y - minY)
+
+        return min(xScale, yScale)
+    }
+
+    func scaleFromDirectBasis(scale: Float) {
+        let invDirectBasis = directBasis.inverse
+
+        for index in 0...4 {
+            frameVertices[index] = invDirectBasis * frameVertices[index]
+        }
+
+        for index in 0...4 {
+            frameVertices[index].x *= scale
+            frameVertices[index].y *= scale
+        }
+
+        for index in 0...4 {
+            frameVertices[index] = directBasis * frameVertices[index]
+        }
+
+        //createDataBuffer()
     }
 
     func render() {
@@ -256,6 +311,8 @@ class ViewController: UIViewController {
                     vertexData.append(first)
                     updateBasises()
                     magnetToDirectBasis()
+                    let scale = getScaleToDiagonalBasis()
+                    scaleFromDirectBasis(scale: scale)
                 }
             }
 
