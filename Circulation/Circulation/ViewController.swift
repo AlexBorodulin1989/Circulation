@@ -52,6 +52,9 @@ class ViewController: UIViewController {
     var directBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
     var diagonalBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
 
+    private var transitionMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+    private var scaleMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -118,7 +121,6 @@ class ViewController: UIViewController {
 
     func updateBasises() {
         if vertexData.count == 5 {
-
             var newXBasis = SIMD2<Float>(vertexData[3].x - vertexData[0].x, vertexData[3].y - vertexData[0].y)
             var newYBasis = SIMD2<Float>(vertexData[1].x - vertexData[0].x, vertexData[1].y - vertexData[0].y)
 
@@ -150,14 +152,16 @@ class ViewController: UIViewController {
     func magnetToDirectBasis() {
         let invDirectBasis = directBasis.inverse
 
+        var vertices = frameVertices
+
         for index in 0...4 {
-            frameVertices[index] = invDirectBasis * frameVertices[index]
+            vertices[index] = invDirectBasis * vertices[index]
         }
 
         var minX = Float.greatestFiniteMagnitude
         var minY = Float.greatestFiniteMagnitude
 
-        for frameVertex in frameVertices {
+        for frameVertex in vertices {
             let currX = frameVertex.x
             let currY = frameVertex.y
 
@@ -170,13 +174,18 @@ class ViewController: UIViewController {
         }
 
         for index in 0...4 {
-            frameVertices[index].x -= minX
-            frameVertices[index].y -= minY
+            vertices[index].x -= minX
+            vertices[index].y -= minY
         }
 
         for index in 0...4 {
-            frameVertices[index] = directBasis * frameVertices[index]
+            vertices[index] = directBasis * vertices[index]
         }
+
+        transitionMatrix[2][0] = vertices[0].x - frameVertices[0].x
+        transitionMatrix[2][1] = vertices[0].y - frameVertices[0].y
+
+        print(transitionMatrix)
     }
 
     func getScaleToDiagonalBasis() -> Float {
@@ -185,7 +194,7 @@ class ViewController: UIViewController {
         var vertices = frameVertices
 
         for index in 0...4 {
-            vertices[index] = invDiagonalBasis * vertices[index]
+            vertices[index] = invDiagonalBasis * transitionMatrix * vertices[index]
         }
 
         var minX = Float.greatestFiniteMagnitude
@@ -214,20 +223,28 @@ class ViewController: UIViewController {
     func scaleFromDirectBasis(scale: Float) {
         let invDirectBasis = directBasis.inverse
 
+        var vertices = frameVertices
+
         for index in 0...4 {
-            frameVertices[index] = invDirectBasis * frameVertices[index]
+            vertices[index] = invDirectBasis * transitionMatrix * vertices[index]
         }
 
         for index in 0...4 {
-            frameVertices[index].x *= scale
-            frameVertices[index].y *= scale
+            vertices[index].x *= scale
+            vertices[index].y *= scale
         }
 
         for index in 0...4 {
-            frameVertices[index] = directBasis * frameVertices[index]
+            vertices[index] = directBasis * vertices[index]
         }
 
-        //createDataBuffer()
+        let mainBasisScale = (vertices[1].x - vertices[0].x) / (frameVertices[1].x - frameVertices[0].x)
+
+        transitionMatrix[2][0] = vertices[0].x - frameVertices[0].x * mainBasisScale
+        transitionMatrix[2][1] = vertices[0].y - frameVertices[0].y * mainBasisScale
+
+        scaleMatrix[0][0] = mainBasisScale
+        scaleMatrix[1][1] = mainBasisScale
     }
 
     func render() {
@@ -278,6 +295,8 @@ class ViewController: UIViewController {
             renderPassDescriptor.colorAttachments[0].clearColor = clearColor
 
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
+
+            transform.matrix *= (transitionMatrix * scaleMatrix)
 
             renderEncoder.setRenderPipelineState(pipelineState)
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
