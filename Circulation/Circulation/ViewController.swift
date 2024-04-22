@@ -44,9 +44,9 @@ class ViewController: UIViewController {
     private let frameWidth: CGFloat = 100
     private let frameHeight: CGFloat = 50
 
-    private let clearColor = MTLClearColor(red: 0.0,
-                                           green: 104.0/255.0,
-                                           blue: 55.0/255.0,
+    private let clearColor = MTLClearColor(red: 40.0/255.0,
+                                           green: 93.0/255.0,
+                                           blue: 102.0/255.0,
                                            alpha: 1.0)
 
     var directBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))

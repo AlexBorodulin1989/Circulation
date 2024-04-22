@@ -48,5 +48,5 @@ vertex VertexOut basic_vertex(const device float3* vertex_array [[ buffer(0) ]],
 }
 
 fragment half4 basic_fragment() {
-    return half4(1.0);
+    return half4(252.0/255.0, 55.0/255.0, 0.0, 1.0);
 }
