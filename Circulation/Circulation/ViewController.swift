@@ -272,16 +272,23 @@ class ViewController: UIViewController {
 
             renderEncoder.setRenderPipelineState(pipelineState)
 
-            renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
+            let vertexCount = vertexData.count
+
+            if vertexCount == 5 {
+                var invTransform = Transform(matrix: transform.matrix * (transitionMatrix * scaleMatrix).inverse)
+                renderEncoder.setVertexBytes(&invTransform, length: MemoryLayout<Transform>.size, index: 16)
+            } else {
+                renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
+            }
 
             renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-            if vertexData.count == 1 {
+            if vertexCount == 1 {
                 renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexData.count)
-            } else if vertexData.count == 2 {
+            } else if vertexCount == 2 {
                 renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: vertexData.count)
-            } else if vertexData.count == 3 {
+            } else if vertexCount == 3 {
                 renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
-            } else if vertexData.count == 5 {
+            } else if vertexCount == 5 {
                 renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
             }
 
@@ -295,9 +302,6 @@ class ViewController: UIViewController {
             renderPassDescriptor.colorAttachments[0].clearColor = clearColor
 
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
-
-            transform.matrix *= (transitionMatrix * scaleMatrix)
-
             renderEncoder.setRenderPipelineState(pipelineState)
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
             renderEncoder.setVertexBuffer(frameVertBuffer, offset: 0, index: 0)
