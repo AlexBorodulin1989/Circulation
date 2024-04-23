@@ -214,13 +214,13 @@ class ViewController: UIViewController {
     }
 
     func calculateTransforms() {
-        updateBasises()
+        updateBasises(directIndices: [3, 0, 1], diagonalIndices: [1, 2, 3])
         magnetToDirectBasis()
         let scale = getScaleToDiagonalBasis()
         scaleFromDirectBasis(scale: scale)
     }
 
-    func updateBasises() {
+    func updateBasises(directIndices: [Int], diagonalIndices: [Int]) {
         if vertexData.count == 5 {
             var vertices = vertexData
 
@@ -228,8 +228,10 @@ class ViewController: UIViewController {
                 vertices[index] = rotateMatrix * vertices[index]
             }
 
-            var newXBasis = SIMD2<Float>(vertices[3].x - vertices[0].x, vertices[3].y - vertices[0].y)
-            var newYBasis = SIMD2<Float>(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y)
+            var newXBasis = SIMD2<Float>(vertices[directIndices[2]].x - vertices[directIndices[1]].x,
+                                         vertices[directIndices[2]].y - vertices[directIndices[1]].y)
+            var newYBasis = SIMD2<Float>(vertices[directIndices[0]].x - vertices[directIndices[1]].x, 
+                                         vertices[directIndices[0]].y - vertices[directIndices[1]].y)
 
             newXBasis /= newXBasis.magnitude()
             newYBasis /= newYBasis.magnitude()
@@ -238,11 +240,13 @@ class ViewController: UIViewController {
             directBasis[0][1] = newXBasis.y
             directBasis[1][0] = newYBasis.x
             directBasis[1][1] = newYBasis.y
-            directBasis[2][0] = vertices[0].x
-            directBasis[2][1] = vertices[0].y
+            directBasis[2][0] = vertices[directIndices[1]].x
+            directBasis[2][1] = vertices[directIndices[1]].y
 
-            newXBasis = SIMD2<Float>(vertices[3].x - vertices[2].x, vertices[3].y - vertices[2].y)
-            newYBasis = SIMD2<Float>(vertices[1].x - vertices[2].x, vertices[1].y - vertices[2].y)
+            newXBasis = SIMD2<Float>(vertices[diagonalIndices[2]].x - vertices[diagonalIndices[1]].x,
+                                     vertices[diagonalIndices[2]].y - vertices[diagonalIndices[1]].y)
+            newYBasis = SIMD2<Float>(vertices[diagonalIndices[0]].x - vertices[diagonalIndices[1]].x,
+                                     vertices[diagonalIndices[0]].y - vertices[diagonalIndices[1]].y)
 
             newXBasis /= newXBasis.magnitude()
             newYBasis /= newYBasis.magnitude()
@@ -251,8 +255,8 @@ class ViewController: UIViewController {
             diagonalBasis[0][1] = newXBasis.y
             diagonalBasis[1][0] = newYBasis.x
             diagonalBasis[1][1] = newYBasis.y
-            diagonalBasis[2][0] = vertices[2].x
-            diagonalBasis[2][1] = vertices[2].y
+            diagonalBasis[2][0] = vertices[diagonalIndices[1]].x
+            diagonalBasis[2][1] = vertices[diagonalIndices[1]].y
         }
     }
 
