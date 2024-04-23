@@ -56,7 +56,8 @@ class ViewController: UIViewController {
     private var transitionMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
     private var scaleMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
 
-    private var animationDuration: Float = 1
+    private var animationDuration: Double = 1
+    private var startAnimationTimestamp: Double = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -98,6 +99,10 @@ class ViewController: UIViewController {
         ]
 
         createDataBuffer()
+    }
+
+    func startAnimation() {
+        startAnimationTimestamp = Date().timeIntervalSince1970
     }
 
     func createPipelineStates() {
@@ -200,8 +205,6 @@ class ViewController: UIViewController {
 
         transitionMatrix[2][0] = vertices[0].x - frameVertices[0].x
         transitionMatrix[2][1] = vertices[0].y - frameVertices[0].y
-
-        print(transitionMatrix)
     }
 
     func getScaleToDiagonalBasis() -> Float {
@@ -291,10 +294,12 @@ class ViewController: UIViewController {
             let vertexCount = vertexData.count
 
             if vertexCount == 5 {
-                var invTransform = Transform(matrix: transform.matrix * (transitionMatrix * scaleMatrix).inverse)
-                renderEncoder.setVertexBytes(&invTransform, length: MemoryLayout<Transform>.size, index: 16)
+                let animValue = (Date().timeIntervalSince1970 - startAnimationTimestamp) / animationDuration
+                var data = QuadrData(basis_matrix: transform.matrix, transform_matrix: (transitionMatrix * scaleMatrix).inverse, animationValue: Float(animValue))
+                renderEncoder.setVertexBytes(&data, length: MemoryLayout<QuadrData>.size, index: 16)
             } else {
-                renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
+                var data = QuadrData(basis_matrix: transform.matrix, transform_matrix: .init(diagonal: .init(x: 1, y: 1, z: 1)), animationValue: 0)
+                renderEncoder.setVertexBytes(&data, length: MemoryLayout<QuadrData>.size, index: 16)
             }
 
             renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
@@ -352,6 +357,7 @@ class ViewController: UIViewController {
                     magnetToDirectBasis()
                     let scale = getScaleToDiagonalBasis()
                     scaleFromDirectBasis(scale: scale)
+                    startAnimation()
                 }
             }
 

@@ -14,4 +14,10 @@ typedef struct {
     matrix_float3x3 matrix;
 } Transform;
 
+typedef struct {
+    matrix_float3x3 basis_matrix;
+    matrix_float3x3 transform_matrix;
+    float animationValue;
+} QuadrData;
+
 #endif /* General_h */

@@ -52,9 +52,11 @@ vertex VertexOut frame_vertex(const device float3* vertex_array [[ buffer(0) ]],
 constant float animDuration [[ function_constant(0) ]];
 vertex VertexOut quadrilateral_vertex(const device float3* vertex_array [[ buffer(0) ]],
                             unsigned int vid [[ vertex_id ]],
-                            constant Transform &transform [[buffer(16)]]) {
+                            constant QuadrData &data [[buffer(16)]]) {
     auto pos = vertex_array[vid];
-    auto transformPos = transform.matrix * pos;
+    auto transformedPos = data.transform_matrix * pos;
+    auto interpolatedPos = pos + smoothstep(0.0, 1.0, data.animationValue) * (transformedPos - pos);
+    auto transformPos = data.basis_matrix * interpolatedPos;
     VertexOut result {
         .pos = float4(transformPos.xy, 0.5, 1.0),
         .pointsize = 10,
