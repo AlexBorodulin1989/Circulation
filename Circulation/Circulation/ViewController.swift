@@ -34,7 +34,8 @@ class ViewController: UIViewController {
     var metalLayer: CAMetalLayer!
     var vertexBuffer: MTLBuffer!
     var frameVertBuffer: MTLBuffer!
-    var pipelineState: MTLRenderPipelineState!
+    var framePipelineState: MTLRenderPipelineState!
+    var quadrPipelineState: MTLRenderPipelineState!
     var commandQueue: MTLCommandQueue!
     var timer: CADisplayLink!
 
@@ -68,17 +69,7 @@ class ViewController: UIViewController {
         view.layer.addSublayer(metalLayer)
 
         createDataBuffer()
-
-        let defaultLibrary = device.makeDefaultLibrary()!
-        let fragmentProgram = defaultLibrary.makeFunction(name: "basic_fragment")
-        let vertexProgram = defaultLibrary.makeFunction(name: "basic_vertex")
-
-        let pipelineStateDescriptor = MTLRenderPipelineDescriptor()
-        pipelineStateDescriptor.vertexFunction = vertexProgram
-        pipelineStateDescriptor.fragmentFunction = fragmentProgram
-        pipelineStateDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-
-        pipelineState = try! device.makeRenderPipelineState(descriptor: pipelineStateDescriptor)
+        createPipelineStates()
 
         commandQueue = device.makeCommandQueue()
 
@@ -105,6 +96,26 @@ class ViewController: UIViewController {
         ]
 
         createDataBuffer()
+    }
+
+    func createPipelineStates() {
+        let defaultLibrary = device.makeDefaultLibrary()!
+        let fragmentProgram = defaultLibrary.makeFunction(name: "basic_fragment")
+        let frameVertexProgram = defaultLibrary.makeFunction(name: "frame_vertex")
+        let quadrVertexProgram = defaultLibrary.makeFunction(name: "quadrilateral_vertex")
+
+        let framePipelineStateDescriptor = MTLRenderPipelineDescriptor()
+        framePipelineStateDescriptor.vertexFunction = frameVertexProgram
+        framePipelineStateDescriptor.fragmentFunction = fragmentProgram
+        framePipelineStateDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+
+        let quadrFramePipelineStateDescriptor = MTLRenderPipelineDescriptor()
+        quadrFramePipelineStateDescriptor.vertexFunction = quadrVertexProgram
+        quadrFramePipelineStateDescriptor.fragmentFunction = fragmentProgram
+        quadrFramePipelineStateDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+
+        framePipelineState = try! device.makeRenderPipelineState(descriptor: framePipelineStateDescriptor)
+        quadrPipelineState = try! device.makeRenderPipelineState(descriptor: quadrFramePipelineStateDescriptor)
     }
 
     func createDataBuffer() {
@@ -270,7 +281,7 @@ class ViewController: UIViewController {
 
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
 
-            renderEncoder.setRenderPipelineState(pipelineState)
+            renderEncoder.setRenderPipelineState(quadrPipelineState)
 
             let vertexCount = vertexData.count
 
@@ -302,7 +313,7 @@ class ViewController: UIViewController {
             renderPassDescriptor.colorAttachments[0].clearColor = clearColor
 
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
-            renderEncoder.setRenderPipelineState(pipelineState)
+            renderEncoder.setRenderPipelineState(framePipelineState)
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
             renderEncoder.setVertexBuffer(frameVertBuffer, offset: 0, index: 0)
             renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: frameVertices.count)

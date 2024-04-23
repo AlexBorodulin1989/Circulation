@@ -33,20 +33,35 @@ using namespace metal;
 struct VertexOut {
     float4 pos [[position]];
     float pointsize [[point_size]];
+    half4 color;
 };
 
-vertex VertexOut basic_vertex(const device float3* vertex_array [[ buffer(0) ]],
-                           unsigned int vid [[ vertex_id ]],
-                           constant Transform &transform [[buffer(16)]]) {
+vertex VertexOut frame_vertex(const device float3* vertex_array [[ buffer(0) ]],
+                              unsigned int vid [[ vertex_id ]],
+                              constant Transform &transform [[buffer(16)]]) {
     auto pos = vertex_array[vid];
     auto transformPos = transform.matrix * pos;
     VertexOut result {
         .pos = float4(transformPos.xy, 0.5, 1.0),
-        .pointsize = 10
+        .pointsize = 10,
+        .color = half4(252.0/255.0, 55.0/255.0, 0.0, 1.0)
     };
     return result;
 }
 
-fragment half4 basic_fragment() {
-    return half4(252.0/255.0, 55.0/255.0, 0.0, 1.0);
+vertex VertexOut quadrilateral_vertex(const device float3* vertex_array [[ buffer(0) ]],
+                            unsigned int vid [[ vertex_id ]],
+                            constant Transform &transform [[buffer(16)]]) {
+    auto pos = vertex_array[vid];
+    auto transformPos = transform.matrix * pos;
+    VertexOut result {
+        .pos = float4(transformPos.xy, 0.5, 1.0),
+        .pointsize = 10,
+        .color = half4(0.0, 168.0/255.0, 72.0, 1.0)
+    };
+    return result;
+}
+
+fragment half4 basic_fragment(VertexOut in [[stage_in]]) {
+    return in.color;
 }
