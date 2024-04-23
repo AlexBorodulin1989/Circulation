@@ -56,6 +56,8 @@ class ViewController: UIViewController {
     private var transitionMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
     private var scaleMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
 
+    private var animationDuration: Float = 1
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -99,10 +101,13 @@ class ViewController: UIViewController {
     }
 
     func createPipelineStates() {
+        let constantValues = MTLFunctionConstantValues()
+        constantValues.setConstantValue(&animationDuration, type: .float, index: 0)
+
         let defaultLibrary = device.makeDefaultLibrary()!
         let fragmentProgram = defaultLibrary.makeFunction(name: "basic_fragment")
         let frameVertexProgram = defaultLibrary.makeFunction(name: "frame_vertex")
-        let quadrVertexProgram = defaultLibrary.makeFunction(name: "quadrilateral_vertex")
+        let quadrVertexProgram = try! defaultLibrary.makeFunction(name: "quadrilateral_vertex", constantValues: constantValues)
 
         let framePipelineStateDescriptor = MTLRenderPipelineDescriptor()
         framePipelineStateDescriptor.vertexFunction = frameVertexProgram
