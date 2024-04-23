@@ -19,21 +19,33 @@
                             <mtkView contentMode="scaleToFill" colorPixelFormat="BGRA8Unorm" depthStencilPixelFormat="Depth32Float" translatesAutoresizingMaskIntoConstraints="NO" id="qi3-CE-JTy">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                             </mtkView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="FPS:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="TEs-Fw-o6M">
+                                <rect key="frame" x="268" y="59" width="100" height="32"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="100" id="4xZ-9L-hkL"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" name="Noteworthy-Light" family="Noteworthy" pointSize="20"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <gestureRecognizers/>
                         <constraints>
                             <constraint firstAttribute="bottom" secondItem="qi3-CE-JTy" secondAttribute="bottom" id="8Rs-Tt-B8H"/>
+                            <constraint firstItem="TEs-Fw-o6M" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" id="WKf-GV-Kjr"/>
                             <constraint firstItem="qi3-CE-JTy" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="c1B-O0-sxl"/>
                             <constraint firstItem="qi3-CE-JTy" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="nm8-V4-zDF"/>
                             <constraint firstItem="qi3-CE-JTy" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="qpH-2K-LCZ"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="TEs-Fw-o6M" secondAttribute="trailing" constant="25" id="tha-X5-vke"/>
                         </constraints>
                         <connections>
                             <outletCollection property="gestureRecognizers" destination="srS-x1-Cbr" appends="YES" id="5A6-du-DRe"/>
                         </connections>
                     </view>
                     <connections>
+                        <outlet property="fpsLabel" destination="TEs-Fw-o6M" id="WtG-k0-DCE"/>
                         <outlet property="metalView" destination="qi3-CE-JTy" id="6Ub-Cf-keh"/>
                     </connections>
                 </viewController>

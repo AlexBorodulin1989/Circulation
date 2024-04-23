@@ -31,6 +31,11 @@ import MetalKit
 
 class ViewController: UIViewController {
     @IBOutlet weak var metalView: MTKView!
+    @IBOutlet weak var fpsLabel: UILabel!
+
+    private var fps = 0
+    private var lastTimeInterval = CFAbsoluteTimeGetCurrent()
+    private var timeElapsed: Double = 0
 
     var device: MTLDevice!
     var metalLayer: CAMetalLayer!
@@ -100,6 +105,23 @@ class ViewController: UIViewController {
         ]
 
         createDataBuffer()
+    }
+
+    func fpsCalculator() {
+        let timeInterval = CFAbsoluteTimeGetCurrent()
+
+        let timeDif = timeInterval - lastTimeInterval
+
+        timeElapsed += timeDif
+
+        if timeElapsed > 1 {
+            timeElapsed = timeElapsed - 1
+            fpsLabel.text = "FPS: \(fps)"
+            fps = 0
+        }
+        fps += 1
+
+        lastTimeInterval = timeInterval
     }
 
     func startAnimation() {
@@ -366,6 +388,8 @@ extension ViewController: MTKViewDelegate {
         else {
             return
         }
+
+        fpsCalculator()
 
         var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
         invertedYBasis[1][1] = -1
