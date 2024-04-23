@@ -214,10 +214,30 @@ class ViewController: UIViewController {
     }
 
     func calculateTransforms() {
-        updateBasises(directIndices: [3, 0, 1], diagonalIndices: [1, 2, 3])
-        magnetToDirectBasis()
-        let scale = getScaleToDiagonalBasis()
-        scaleFromDirectBasis(scale: scale)
+        var maxScale: Float = 0
+        for index in 0...3 {
+            var directIndices = [3, 0, 1].map { num in
+                var res = num + index
+                if res > 3 {
+                    return res - 4
+                }
+                return res
+            }
+            var diagonalIndices = [1, 2, 3].map { num in
+                var res = num + index
+                if res > 3 {
+                    return res - 4
+                }
+                return res
+            }
+            updateBasises(directIndices: directIndices, diagonalIndices: diagonalIndices)
+            let transitionMat = magnetToDirectBasis()
+            let scale = getScaleToDiagonalBasis(transitionMat: transitionMat)
+            if scale > maxScale {
+                maxScale = scale
+                scaleFromDirectBasis(scale: maxScale, transitionMat: transitionMat)
+            }
+        }
     }
 
     func updateBasises(directIndices: [Int], diagonalIndices: [Int]) {
@@ -260,7 +280,7 @@ class ViewController: UIViewController {
         }
     }
 
-    func magnetToDirectBasis() {
+    func magnetToDirectBasis() -> float3x3 {
         let invDirectBasis = directBasis.inverse
 
         var vertices = frameVertices
@@ -293,17 +313,21 @@ class ViewController: UIViewController {
             vertices[index] = directBasis * vertices[index]
         }
 
-        transitionMatrix[2][0] = vertices[0].x - frameVertices[0].x
-        transitionMatrix[2][1] = vertices[0].y - frameVertices[0].y
+        var transitionMat: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+
+        transitionMat[2][0] = vertices[0].x - frameVertices[0].x
+        transitionMat[2][1] = vertices[0].y - frameVertices[0].y
+
+        return transitionMat
     }
 
-    func getScaleToDiagonalBasis() -> Float {
+    func getScaleToDiagonalBasis(transitionMat: float3x3) -> Float {
         let invDiagonalBasis = diagonalBasis.inverse
 
         var vertices = frameVertices
 
         for index in 0...4 {
-            vertices[index] = invDiagonalBasis * transitionMatrix * vertices[index]
+            vertices[index] = invDiagonalBasis * transitionMat * vertices[index]
         }
 
         var minX = Float.greatestFiniteMagnitude
@@ -329,13 +353,13 @@ class ViewController: UIViewController {
         return min(xScale, yScale)
     }
 
-    func scaleFromDirectBasis(scale: Float) {
+    func scaleFromDirectBasis(scale: Float, transitionMat: float3x3) {
         let invDirectBasis = directBasis.inverse
 
         var vertices = frameVertices
 
         for index in 0...4 {
-            vertices[index] = invDirectBasis * transitionMatrix * vertices[index]
+            vertices[index] = invDirectBasis * transitionMat * vertices[index]
         }
 
         for index in 0...4 {
