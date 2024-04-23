@@ -201,7 +201,7 @@ class ViewController: UIViewController {
     }
 
     func rotate() {
-        angle += 0.01
+        angle += 0.02
         let cosA = cos(angle)
         let sinA = sin(angle)
 
@@ -215,16 +215,17 @@ class ViewController: UIViewController {
 
     func calculateTransforms() {
         var maxScale: Float = 0
+        var enters: Int = 0
         for index in 0...3 {
-            var directIndices = [3, 0, 1].map { num in
-                var res = num + index
+            let directIndices = [3, 0, 1].map { num in
+                let res = num + index
                 if res > 3 {
                     return res - 4
                 }
                 return res
             }
-            var diagonalIndices = [1, 2, 3].map { num in
-                var res = num + index
+            let diagonalIndices = [1, 2, 3].map { num in
+                let res = num + index
                 if res > 3 {
                     return res - 4
                 }
@@ -232,8 +233,12 @@ class ViewController: UIViewController {
             }
             updateBasises(directIndices: directIndices, diagonalIndices: diagonalIndices)
             let transitionMat = magnetToDirectBasis()
-            let scale = getScaleToDiagonalBasis(transitionMat: transitionMat)
-            if scale > maxScale {
+            let scale = getScaleToDiagonalBasis(transitionMat: transitionMat, directVertex: vertexData[directIndices[1]])
+            if scale > (maxScale + 0.001) {
+                enters += 1
+                if maxScale > 0.0001 {
+                    print("diff = \(scale - maxScale)")
+                }
                 maxScale = scale
                 scaleFromDirectBasis(scale: maxScale, transitionMat: transitionMat)
             }
@@ -321,7 +326,7 @@ class ViewController: UIViewController {
         return transitionMat
     }
 
-    func getScaleToDiagonalBasis(transitionMat: float3x3) -> Float {
+    func getScaleToDiagonalBasis(transitionMat: float3x3, directVertex: SIMD3<Float>) -> Float {
         let invDiagonalBasis = diagonalBasis.inverse
 
         var vertices = frameVertices
@@ -345,7 +350,7 @@ class ViewController: UIViewController {
             }
         }
 
-        let directCorner = invDiagonalBasis * rotateMatrix * vertexData[0]
+        let directCorner = invDiagonalBasis * rotateMatrix * directVertex
 
         let xScale = directCorner.x / (directCorner.x - minX)
         let yScale = directCorner.y / (directCorner.y - minY)
