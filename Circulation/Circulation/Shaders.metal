@@ -49,7 +49,6 @@ vertex VertexOut frame_vertex(const device float3* vertex_array [[ buffer(0) ]],
     return result;
 }
 
-constant float animDuration [[ function_constant(0) ]];
 vertex VertexOut quadrilateral_vertex(const device float3* vertex_array [[ buffer(0) ]],
                             unsigned int vid [[ vertex_id ]],
                             constant QuadrData &data [[buffer(16)]]) {

@@ -27,9 +27,11 @@
 /// THE SOFTWARE.
 
 import UIKit
-import Metal
+import MetalKit
 
 class ViewController: UIViewController {
+    @IBOutlet weak var metalView: MTKView!
+
     var device: MTLDevice!
     var metalLayer: CAMetalLayer!
     var vertexBuffer: MTLBuffer!
@@ -37,7 +39,6 @@ class ViewController: UIViewController {
     var framePipelineState: MTLRenderPipelineState!
     var quadrPipelineState: MTLRenderPipelineState!
     var commandQueue: MTLCommandQueue!
-    var timer: CADisplayLink!
 
     var vertexData: [SIMD3<Float>] = []
     var frameVertices: [SIMD3<Float>] = []
@@ -45,9 +46,9 @@ class ViewController: UIViewController {
     private let frameWidth: CGFloat = 100
     private let frameHeight: CGFloat = 50
 
-    private let clearColor = MTLClearColor(red: 40.0/255.0,
-                                           green: 93.0/255.0,
-                                           blue: 102.0/255.0,
+    private let clearColor = MTLClearColor(red: 0.0,
+                                           green: 0.0,
+                                           blue: 0.0,
                                            alpha: 1.0)
 
     var directBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
@@ -67,20 +68,17 @@ class ViewController: UIViewController {
 
         device = MTLCreateSystemDefaultDevice()
 
-        metalLayer = CAMetalLayer()
-        metalLayer.device = device
-        metalLayer.pixelFormat = .bgra8Unorm
-        metalLayer.framebufferOnly = true
-        metalLayer.frame = view.layer.frame
-        view.layer.addSublayer(metalLayer)
+        metalView.device = device
+        metalView.colorPixelFormat = .bgra8Unorm
+        metalView.framebufferOnly = true
+        metalView.frame = view.layer.frame
+
+        metalView.delegate = self
 
         createDataBuffer()
         createPipelineStates()
 
         commandQueue = device.makeCommandQueue()
-
-        timer = CADisplayLink(target: self, selector: #selector(gameloop))
-        timer.add(to: .main, forMode: .default)
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -296,8 +294,41 @@ class ViewController: UIViewController {
     }
 
     func render() {
-        guard let drawable = metalLayer?.nextDrawable() else { return }
-        let commandBuffer = commandQueue.makeCommandBuffer()!
+
+    }
+
+    @IBAction func touchScreen(_ sender: UITapGestureRecognizer) {
+        if(sender.state == UIGestureRecognizer.State.ended){
+            let location = sender.location(in: self.view)
+
+            if vertexData.count == 5 {
+                vertexData = []
+            }
+            vertexData.append(.init(Float(location.x), Float(location.y), 1))
+
+            if vertexData.count == 4 {
+                if let first = vertexData.first {
+                    vertexData.append(first)
+                    angle = 0
+                    rotate()
+                    startAnimation()
+                }
+            }
+
+            createDataBuffer()
+        }
+    }
+}
+
+extension ViewController: MTKViewDelegate {
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+
+    func draw(in view: MTKView) {
+        guard let drawable = view.currentDrawable,
+              let commandBuffer = commandQueue.makeCommandBuffer()
+        else {
+            return
+        }
 
         var invertedYBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
         invertedYBasis[1][1] = -1
@@ -365,33 +396,5 @@ class ViewController: UIViewController {
 
         commandBuffer.present(drawable)
         commandBuffer.commit()
-    }
-
-    @objc func gameloop() {
-        autoreleasepool {
-            render()
-        }
-    }
-
-    @IBAction func touchScreen(_ sender: UITapGestureRecognizer) {
-        if(sender.state == UIGestureRecognizer.State.ended){
-            let location = sender.location(in: self.view)
-
-            if vertexData.count == 5 {
-                vertexData = []
-            }
-            vertexData.append(.init(Float(location.x), Float(location.y), 1))
-
-            if vertexData.count == 4 {
-                if let first = vertexData.first {
-                    vertexData.append(first)
-                    angle = 0
-                    rotate()
-                    startAnimation()
-                }
-            }
-
-            createDataBuffer()
-        }
     }
 }

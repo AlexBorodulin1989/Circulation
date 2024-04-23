@@ -15,13 +15,27 @@
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <mtkView contentMode="scaleToFill" colorPixelFormat="BGRA8Unorm" depthStencilPixelFormat="Depth32Float" translatesAutoresizingMaskIntoConstraints="NO" id="qi3-CE-JTy">
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                            </mtkView>
+                        </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <gestureRecognizers/>
+                        <constraints>
+                            <constraint firstAttribute="bottom" secondItem="qi3-CE-JTy" secondAttribute="bottom" id="8Rs-Tt-B8H"/>
+                            <constraint firstItem="qi3-CE-JTy" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="c1B-O0-sxl"/>
+                            <constraint firstItem="qi3-CE-JTy" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="nm8-V4-zDF"/>
+                            <constraint firstItem="qi3-CE-JTy" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="qpH-2K-LCZ"/>
+                        </constraints>
                         <connections>
                             <outletCollection property="gestureRecognizers" destination="srS-x1-Cbr" appends="YES" id="5A6-du-DRe"/>
                         </connections>
                     </view>
+                    <connections>
+                        <outlet property="metalView" destination="qi3-CE-JTy" id="6Ub-Cf-keh"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
                 <tapGestureRecognizer id="srS-x1-Cbr">
@@ -30,7 +44,7 @@
                     </connections>
                 </tapGestureRecognizer>
             </objects>
-            <point key="canvasLocation" x="131" y="-27"/>
+            <point key="canvasLocation" x="130.53435114503816" y="-27.464788732394368"/>
         </scene>
     </scenes>
     <resources>
