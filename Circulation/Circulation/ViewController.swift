@@ -55,9 +55,12 @@ class ViewController: UIViewController {
 
     private var transitionMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
     private var scaleMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
+    private var rotateMatrix: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
 
     private var animationDuration: Double = 1
     private var startAnimationTimestamp: Double = 0
+
+    private var angle: Float = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -140,10 +143,36 @@ class ViewController: UIViewController {
         }
     }
 
+    func rotate() {
+        angle += 0.01
+        let cosA = cos(angle)
+        let sinA = sin(angle)
+
+        rotateMatrix[0][0] = cosA
+        rotateMatrix[0][1] = -sinA
+        rotateMatrix[1][0] = sinA
+        rotateMatrix[1][1] = cosA
+
+        calculateTransforms()
+    }
+
+    func calculateTransforms() {
+        updateBasises()
+        magnetToDirectBasis()
+        let scale = getScaleToDiagonalBasis()
+        scaleFromDirectBasis(scale: scale)
+    }
+
     func updateBasises() {
         if vertexData.count == 5 {
-            var newXBasis = SIMD2<Float>(vertexData[3].x - vertexData[0].x, vertexData[3].y - vertexData[0].y)
-            var newYBasis = SIMD2<Float>(vertexData[1].x - vertexData[0].x, vertexData[1].y - vertexData[0].y)
+            var vertices = vertexData
+
+            for index in 0...4 {
+                vertices[index] = rotateMatrix * vertices[index]
+            }
+
+            var newXBasis = SIMD2<Float>(vertices[3].x - vertices[0].x, vertices[3].y - vertices[0].y)
+            var newYBasis = SIMD2<Float>(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y)
 
             newXBasis /= newXBasis.magnitude()
             newYBasis /= newYBasis.magnitude()
@@ -152,11 +181,11 @@ class ViewController: UIViewController {
             directBasis[0][1] = newXBasis.y
             directBasis[1][0] = newYBasis.x
             directBasis[1][1] = newYBasis.y
-            directBasis[2][0] = vertexData[0].x
-            directBasis[2][1] = vertexData[0].y
+            directBasis[2][0] = vertices[0].x
+            directBasis[2][1] = vertices[0].y
 
-            newXBasis = SIMD2<Float>(vertexData[3].x - vertexData[2].x, vertexData[3].y - vertexData[2].y)
-            newYBasis = SIMD2<Float>(vertexData[1].x - vertexData[2].x, vertexData[1].y - vertexData[2].y)
+            newXBasis = SIMD2<Float>(vertices[3].x - vertices[2].x, vertices[3].y - vertices[2].y)
+            newYBasis = SIMD2<Float>(vertices[1].x - vertices[2].x, vertices[1].y - vertices[2].y)
 
             newXBasis /= newXBasis.magnitude()
             newYBasis /= newYBasis.magnitude()
@@ -165,8 +194,8 @@ class ViewController: UIViewController {
             diagonalBasis[0][1] = newXBasis.y
             diagonalBasis[1][0] = newYBasis.x
             diagonalBasis[1][1] = newYBasis.y
-            diagonalBasis[2][0] = vertexData[2].x
-            diagonalBasis[2][1] = vertexData[2].y
+            diagonalBasis[2][0] = vertices[2].x
+            diagonalBasis[2][1] = vertices[2].y
         }
     }
 
@@ -231,7 +260,7 @@ class ViewController: UIViewController {
             }
         }
 
-        let directCorner = invDiagonalBasis * vertexData[0]
+        let directCorner = invDiagonalBasis * rotateMatrix * vertexData[0]
 
         let xScale = directCorner.x / (directCorner.x - minX)
         let yScale = directCorner.y / (directCorner.y - minY)
@@ -295,8 +324,11 @@ class ViewController: UIViewController {
 
             if vertexCount == 5 {
                 let animValue = (Date().timeIntervalSince1970 - startAnimationTimestamp) / animationDuration
-                var data = QuadrData(basis_matrix: transform.matrix, transform_matrix: (transitionMatrix * scaleMatrix).inverse, animationValue: Float(animValue))
+                var data = QuadrData(basis_matrix: transform.matrix, transform_matrix: (transitionMatrix * scaleMatrix).inverse * rotateMatrix, animationValue: Float(animValue))
                 renderEncoder.setVertexBytes(&data, length: MemoryLayout<QuadrData>.size, index: 16)
+                if animValue > 1 {
+                    rotate()
+                }
             } else {
                 var data = QuadrData(basis_matrix: transform.matrix, transform_matrix: .init(diagonal: .init(x: 1, y: 1, z: 1)), animationValue: 0)
                 renderEncoder.setVertexBytes(&data, length: MemoryLayout<QuadrData>.size, index: 16)
@@ -353,10 +385,8 @@ class ViewController: UIViewController {
             if vertexData.count == 4 {
                 if let first = vertexData.first {
                     vertexData.append(first)
-                    updateBasises()
-                    magnetToDirectBasis()
-                    let scale = getScaleToDiagonalBasis()
-                    scaleFromDirectBasis(scale: scale)
+                    angle = 0
+                    rotate()
                     startAnimation()
                 }
             }
@@ -365,4 +395,3 @@ class ViewController: UIViewController {
         }
     }
 }
-
