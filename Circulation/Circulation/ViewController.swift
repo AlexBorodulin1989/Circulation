@@ -46,9 +46,9 @@ class ViewController: UIViewController {
     private let frameWidth: CGFloat = 100
     private let frameHeight: CGFloat = 50
 
-    private let clearColor = MTLClearColor(red: 0.0,
-                                           green: 0.0,
-                                           blue: 0.0,
+    private let clearColor = MTLClearColor(red: 40.0/255.0,
+                                           green: 93.0/255.0,
+                                           blue: 102.0/255.0,
                                            alpha: 1.0)
 
     var directBasis: float3x3 = .init(diagonal: .init(x: 1, y: 1, z: 1))
@@ -131,8 +131,29 @@ class ViewController: UIViewController {
 
     func createDataBuffer() {
         if !vertexData.isEmpty {
-            let dataSize = vertexData.count * MemoryLayout<SIMD3<Float>>.size
-            vertexBuffer = device.makeBuffer(bytes: vertexData, length: dataSize)
+            if vertexData.count == 1 {
+                let dataSize = vertexData.count * MemoryLayout<SIMD3<Float>>.size
+                vertexBuffer = device.makeBuffer(bytes: vertexData, length: dataSize)
+            } else {
+                var vertices: [SIMD3<Float>] = []
+                for index in 0..<(vertexData.count-1) {
+                    var dirVector: SIMD2<Float> = .init(vertexData[index+1].x - vertexData[index].x,
+                                                        vertexData[index+1].y - vertexData[index].y)
+                    dirVector /= dirVector.magnitude()
+                    let rightVector = SIMD3<Float>(dirVector.y, -dirVector.x, 0)
+                    let leftVector = SIMD3<Float>(-dirVector.y, dirVector.x, 0)
+
+                    let topLeft = vertexData[index] + leftVector
+                    let bottomLeft = vertexData[index] + rightVector
+                    let topRight = vertexData[index+1] + leftVector
+                    let bottomRight = vertexData[index+1] + rightVector
+
+                    vertices.append(contentsOf: [topLeft, bottomRight, bottomLeft, topLeft, topRight, bottomRight])
+                }
+
+                let dataSize = vertices.count * MemoryLayout<SIMD3<Float>>.size
+                vertexBuffer = device.makeBuffer(bytes: vertices, length: dataSize)
+            }
         }
 
         if !frameVertices.isEmpty {
@@ -384,12 +405,8 @@ extension ViewController: MTKViewDelegate {
             renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
             if vertexCount == 1 {
                 renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: vertexData.count)
-            } else if vertexCount == 2 {
-                renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: vertexData.count)
-            } else if vertexCount == 3 {
-                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
-            } else if vertexCount == 5 {
-                renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: vertexData.count)
+            } else {
+                renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: (vertexData.count - 1) * 6)
             }
 
             renderEncoder.endEncoding()
@@ -405,7 +422,7 @@ extension ViewController: MTKViewDelegate {
             renderEncoder.setRenderPipelineState(framePipelineState)
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
             renderEncoder.setVertexBuffer(frameVertBuffer, offset: 0, index: 0)
-            renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 24)
+            renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: (frameVertices.count - 1) * 6)
 
             renderEncoder.endEncoding()
         }

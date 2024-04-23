@@ -59,7 +59,7 @@ vertex VertexOut quadrilateral_vertex(const device float3* vertex_array [[ buffe
     VertexOut result {
         .pos = float4(transformPos.xy, 0.5, 1.0),
         .pointsize = 10,
-        .color = half4(0.0, 168.0/255.0, 72.0, 1.0)
+        .color = half4(0.0, 168.0/255.0, 72.0/255.0, 1.0)
     };
     return result;
 }
