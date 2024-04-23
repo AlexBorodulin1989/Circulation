@@ -136,8 +136,24 @@ class ViewController: UIViewController {
         }
 
         if !frameVertices.isEmpty {
-            let dataSize = frameVertices.count * MemoryLayout<SIMD3<Float>>.size
-            frameVertBuffer = device.makeBuffer(bytes: frameVertices, length: dataSize)
+            var vertices: [SIMD3<Float>] = []
+            for index in 0...3 {
+                var dirVector: SIMD2<Float> = .init(frameVertices[index+1].x - frameVertices[index].x,
+                                                    frameVertices[index+1].y - frameVertices[index].y)
+                dirVector /= dirVector.magnitude()
+                let rightVector = SIMD3<Float>(dirVector.y, -dirVector.x, 0)
+                let leftVector = SIMD3<Float>(-dirVector.y, dirVector.x, 0)
+
+                let topLeft = frameVertices[index] + leftVector
+                let bottomLeft = frameVertices[index] + rightVector
+                let topRight = frameVertices[index+1] + leftVector
+                let bottomRight = frameVertices[index+1] + rightVector
+
+                vertices.append(contentsOf: [topLeft, bottomRight, bottomLeft, topLeft, topRight, bottomRight])
+            }
+
+            let dataSize = vertices.count * MemoryLayout<SIMD3<Float>>.size
+            frameVertBuffer = device.makeBuffer(bytes: vertices, length: dataSize)
         }
     }
 
@@ -389,7 +405,7 @@ extension ViewController: MTKViewDelegate {
             renderEncoder.setRenderPipelineState(framePipelineState)
             renderEncoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.size, index: 16)
             renderEncoder.setVertexBuffer(frameVertBuffer, offset: 0, index: 0)
-            renderEncoder.drawPrimitives(type: .lineStrip, vertexStart: 0, vertexCount: frameVertices.count)
+            renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 24)
 
             renderEncoder.endEncoding()
         }
